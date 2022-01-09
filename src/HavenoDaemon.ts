@@ -1,8 +1,8 @@
 import {HavenoUtils} from "./HavenoUtils";
 import * as grpcWeb from 'grpc-web';
 import {GetVersionClient, DisputeAgentsClient, PriceClient, WalletsClient, OffersClient, PaymentAccountsClient, TradesClient} from './protobuf/GrpcServiceClientPb';
-import {GetVersionRequest, GetVersionReply, RegisterDisputeAgentRequest, MarketPriceRequest, MarketPriceReply, MarketPricesRequest, MarketPricesReply, MarketPriceInfo, GetBalancesRequest, GetBalancesReply, XmrBalanceInfo, GetOffersRequest, GetOffersReply, OfferInfo, GetPaymentAccountsRequest, GetPaymentAccountsReply, CreateCryptoCurrencyPaymentAccountRequest, CreateCryptoCurrencyPaymentAccountReply, CreateOfferRequest, CreateOfferReply, CancelOfferRequest, TakeOfferRequest, TakeOfferReply, TradeInfo, GetTradeRequest, GetTradeReply, GetTradesRequest, GetTradesReply, GetNewDepositSubaddressRequest, GetNewDepositSubaddressReply, ConfirmPaymentStartedRequest, ConfirmPaymentReceivedRequest, XmrTx, GetXmrTxsRequest, GetXmrTxsReply, XmrDestination, CreateXmrTxRequest, CreateXmrTxReply, RelayXmrTxRequest, RelayXmrTxReply} from './protobuf/grpc_pb';
-import {PaymentAccount, AvailabilityResult} from './protobuf/pb_pb';
+import {GetVersionRequest, GetVersionReply, RegisterDisputeAgentRequest, MarketPriceRequest, MarketPriceReply, MarketPricesRequest, MarketPricesReply, MarketPriceInfo, GetBalancesRequest, GetBalancesReply, XmrBalanceInfo, GetOffersRequest, GetOffersReply, OfferInfo, GetPaymentAccountsRequest, GetPaymentAccountsReply, CreateCryptoCurrencyPaymentAccountRequest, CreateCryptoCurrencyPaymentAccountReply, CreateOfferRequest, CreateOfferReply, CancelOfferRequest, TakeOfferRequest, TakeOfferReply, TradeInfo, GetTradeRequest, GetTradeReply, GetTradesRequest, GetTradesReply, GetNewDepositSubaddressRequest, GetNewDepositSubaddressReply, ConfirmPaymentStartedRequest, ConfirmPaymentReceivedRequest, TradeChatMessageRequest, TradeChatMessageReply, ChatMessageRequest, ChatMessageResponse} from './protobuf/grpc_pb';
+import {PaymentAccount, AvailabilityResult, ChatMessage} from './protobuf/pb_pb';
 const console = require('console');
 
 /**
@@ -563,6 +563,54 @@ class HavenoDaemon {
     let that = this;
     return new Promise(function(resolve, reject) {
       that._tradesClient.confirmPaymentReceived(new ConfirmPaymentReceivedRequest().setTradeId(tradeId), {password: that._password}, function(err: grpcWeb.RpcError) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+  }
+  
+  /**
+   * Get all chat messages for a trade
+   * 
+   * @param {string} tradeId - the id of the trade and its offer
+   * @return {ChatMessage[]} all trade chats
+   */
+  async getChatMessages(tradeId: string): Promise<ChatMessage[]> {
+    let that = this;
+    return new Promise(function(resolve, reject) {
+      that._tradesClient.getChatMessages(new ChatMessageRequest().setTradeId(tradeId), {password: that._password}, function(err: grpcWeb.RpcError, response: ChatMessageResponse) {
+        if (err) reject(err);
+        else resolve(response.getMessageList());
+      });
+    });
+  }
+
+    /**
+   * Send a chat message for a trade.
+   * 
+   * @param {string} tradeId - the id of the trade
+   * @param {string} message - the message
+   */
+     async sendChatMessage(tradeId: string, message: string): Promise<void> {
+      let that = this;
+      return new Promise(function(resolve, reject) {
+        that._tradesClient.sendChatMessage(new TradeChatMessageRequest().setTradeId(tradeId).setMessage(message), {password: that._password}, function(err: grpcWeb.RpcError, response: TradeChatMessageReply) {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    }
+
+      /**
+   * Invokes the given function when a new chat message arrives
+   * 
+   * @param {string} tradeId - the id of the trade
+   * @param {string} message - the message
+   */
+  async onChatMessage(tradeId: string, message: string): Promise<void> {
+    let that = this;
+    return new Promise(function(resolve, reject) {
+      that._tradesClient.onChatMessage(new TradeChatMessageRequest().setTradeId(tradeId).setMessage(message), {password: that._password}, function(err: grpcWeb.RpcError) {
         if (err) reject(err);
         else resolve();
       });
